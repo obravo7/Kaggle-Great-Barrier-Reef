@@ -1,3 +1,6 @@
+*.pyc
+__pycache__
+
 dataset
 starfish_box
 starfish_dataset
