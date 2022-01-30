@@ -3,8 +3,7 @@ from PIL import Image
 import cv2
 import pandas as pd
 
-from data_tools import ops
-from data_tools.augment import run_augment
+from data_tools import ops, augment
 import ast
 import random
 
@@ -87,10 +86,10 @@ class FramePoints:
         return img
 
     def bbox_nparray(self) -> np.ndarray:
-        # matches coco txt file: xyxy2xywh
         x = []
         for p in self.vals:
-            x1, y1, x2, y2 = ops.bbox_yolo(self.parse_points(p), (self.IMG_HEIGHT, self.IMG_WIDTH))
+            # x1, y1, x2, y2 = ops.bbox_yolo(self.parse_points(p), (self.IMG_HEIGHT, self.IMG_WIDTH))
+            x1, y1, x2, y2 = ops.to_darknet_label_format(self.parse_points(p), (self.IMG_HEIGHT, self.IMG_WIDTH))
             x.append([self.CATEGORY, x1, y1, x2, y2])
         return np.array(x, dtype=np.float64)
 
@@ -109,7 +108,7 @@ def load_frame_dataset(csv_data_path: Path = TRAIN_CSV) -> List[FramePoints]:
     return frame_data
 
 
-def create_train_data(split_ratio=0.90, augment: bool = False):
+def create_train_data(split_ratio=0.80, augment_data: bool = False):
 
     # dataset path to be used for training
     base_path = Path('starfish_dataset')
@@ -149,8 +148,9 @@ def create_train_data(split_ratio=0.90, augment: bool = False):
 
             img = frame.load_image()
             labels = frame.bbox_nparray()
-            if augment and frame:  # augment only non-empty frames
-                augments = run_augment(img=img.copy())
+            if augment_data and frame:  # augment only non-empty frames
+
+                augments = augment.run_augment(img=img.copy())
                 for idx, aug in enumerate(augments):
                     image_a_fn = f'{frame.image_id}_{frame.video_frame}_{idx}.jpg'
                     label_a_fn = f'{frame.image_id}_{frame.video_frame}_{idx}.txt'
@@ -162,6 +162,9 @@ def create_train_data(split_ratio=0.90, augment: bool = False):
             label_fn = f'{frame.image_id}_{frame.video_frame}.txt'
             Image.fromarray(img).save(image_save_path / image_fn)
             np.savetxt(label_save_path / label_fn, labels, fmt='%g ')
+
+            # verify the points are valid
+            ops.verify_points(label_save_path / label_fn)
 
             # match coco 'train2017.txt'/'val2017.txt'
             with open(text_file_fp, 'a', encoding='utf-8') as out:
@@ -175,7 +178,7 @@ def create_train_data(split_ratio=0.90, augment: bool = False):
 
 
 def main():
-    create_train_data(augment=True)
+    create_train_data(augment_data=True)
 
 
 if __name__ == "__main__":
