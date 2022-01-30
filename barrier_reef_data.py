@@ -4,6 +4,7 @@ import cv2
 import pandas as pd
 
 from data_tools import ops
+from data_tools.augment import run_augment
 import ast
 import random
 
@@ -55,8 +56,8 @@ class FramePoints:
     def parse_points(data: Dict[str, int]) -> Tuple[int, int, int, int]:
         x = data['x']
         y = data['y']
-        width = data['width']
-        height = data['height']
+        width = data['width']    # box width
+        height = data['height']  # box height
         return x, y, width, height
 
     @property
@@ -108,8 +109,9 @@ def load_frame_dataset(csv_data_path: Path = TRAIN_CSV) -> List[FramePoints]:
     return frame_data
 
 
-def create_train_data(split_ratio=0.90):
+def create_train_data(split_ratio=0.90, augment: bool = False):
 
+    # dataset path to be used for training
     base_path = Path('starfish_dataset')
     image_train_dir = base_path / 'images' / 'train'
     image_val_dir = base_path / 'images' / 'val'
@@ -121,6 +123,7 @@ def create_train_data(split_ratio=0.90):
     for p in [image_train_dir, image_val_dir, labels_train_dir, labels_val_dir]:
         p.mkdir(parents=True, exist_ok=True)
 
+    # load and shuffle data
     frame_data = load_frame_dataset()
     n_images = len(frame_data)
     train_n = int(n_images * split_ratio)
@@ -143,14 +146,21 @@ def create_train_data(split_ratio=0.90):
         n = len(frame_list)
         c = 1
         for frame in frame_list:
+
+            img = frame.load_image()
+            labels = frame.bbox_nparray()
+            if augment and frame:  # augment only non-empty frames
+                augments = run_augment(img=img.copy())
+                for idx, aug in enumerate(augments):
+                    image_a_fn = f'{frame.image_id}_{frame.video_frame}_{idx}.jpg'
+                    label_a_fn = f'{frame.image_id}_{frame.video_frame}_{idx}.txt'
+                    aug.save(label_save_path / image_a_fn)
+                    np.savetxt(label_save_path / label_a_fn, labels, fmt='%g ')
+
             # file names
             image_fn = f'{frame.image_id}_{frame.video_frame}.jpg'
             label_fn = f'{frame.image_id}_{frame.video_frame}.txt'
-
-            img = frame.load_image()
             Image.fromarray(img).save(image_save_path / image_fn)
-
-            labels = frame.bbox_nparray()
             np.savetxt(label_save_path / label_fn, labels, fmt='%g ')
 
             # match coco 'train2017.txt'/'val2017.txt'
@@ -162,3 +172,11 @@ def create_train_data(split_ratio=0.90):
     # create dataset
     re_save(train_data, image_train_dir, labels_train_dir, 'train.txt')
     re_save(val_data, image_val_dir, labels_val_dir, 'val.txt')
+
+
+def main():
+    create_train_data(augment=True)
+
+
+if __name__ == "__main__":
+    main()
