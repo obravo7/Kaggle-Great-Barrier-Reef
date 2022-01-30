@@ -7,9 +7,6 @@ import torch
 from typing import Tuple
 
 
-Rect = Tuple[int, int, int, int]
-
-
 def xyxy2xywh(x):
     # Convert nx4 boxes from [x1, y1, x2, y2] to [x, y, w, h] where xy1=top-left, xy2=bottom-right
     y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
@@ -55,3 +52,12 @@ def to_darknet_label_format(box_points: Tuple[int, int, int, int], img_shape: Tu
 
     return x_center, y_center, w, h
 
+
+def verify_points(label_path):
+
+    with open(label_path, 'r') as f:
+        label = np.array([x.split() for x in f.read().splitlines()], dtype=np.float32)  # labels
+
+    if len(label) > 0:
+        if not (label[:, 1:] <= 1).all():
+            print(f'\n\n[warning]  {label_path} \nl values: {label}\n\n')
