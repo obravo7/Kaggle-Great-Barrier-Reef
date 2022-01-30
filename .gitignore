@@ -1,4 +1,6 @@
 dataset
+starfish_box          # testing data
+starfish_dataset      # training and validation set
 *.tar.xz
 *.csv
 *.idea
