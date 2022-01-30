@@ -5,6 +5,8 @@ import cv2
 import numpy as np
 import random
 
+from typing import List
+
 
 class Augment:
     @classmethod
@@ -65,7 +67,16 @@ class Augment:
         return output
 
 
-def run_augment(func_list: list, img):
-
+def run_augment(img, func_list: list = None) -> List[Image.Image]:
+    if not func_list:
+        func_list = ['salt_pepper_noise',
+                     'speckle_noise',
+                     'gauss_blur',
+                     'med_blur',
+                     'bilateral_blur',
+                     'total_blur']
+    img_list = []
     for func in func_list:
         img = getattr(Augment, func)(img)
+        img_list.append(Image.fromarray(img))
+    return img_list
