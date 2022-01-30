@@ -29,7 +29,6 @@ def xywh2xyxy(x):
 
 def bbox_yolo(box_points: Tuple[int, int, int, int], img_shape: Tuple[int, int]) -> Tuple[int, int, int, int]:
     # last answer on: https://stackoverflow.com/questions/49122356/bounding-boxes-for-yolo
-    # see also: https://github.com/ultralytics/yolov3/issues/1543#issuecomment-721532206
 
     left, top, box_width, box_height = box_points
     # top, left, box_height, box_width = box_points
@@ -40,3 +39,25 @@ def bbox_yolo(box_points: Tuple[int, int, int, int], img_shape: Tuple[int, int])
     w = box_width / width
     h = box_height / height
     return x, y, w, h
+
+
+def to_darknet_label_format(box_points: Tuple[int, int, int, int], img_shape: Tuple[int, int]):
+    # see also: https://github.com/ultralytics/yolov3/issues/1543#issuecomment-721532206
+    x_min, y_min, b_width, b_height = box_points
+    img_h, img_w = img_shape
+    x_center = (x_min + b_width / 2) / img_w
+    y_center = (y_min + b_height / 2) / img_h
+    w = b_width / img_w
+    h = b_height / img_h
+
+    return x_center, y_center, w, h
+
+
+def verify_points(label_path):
+
+    with open(label_path, 'r') as f:
+        label = np.array([x.split() for x in f.read().splitlines()], dtype=np.float32)  # labels
+
+    if len(label) > 0:
+        if not (label[:, 1:] <= 1).all():
+            print(f'\n\n[warning]  {label_path} \nl values: {label}\n\n')
