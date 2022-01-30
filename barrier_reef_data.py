@@ -154,7 +154,7 @@ def create_train_data(split_ratio=0.80, augment_data: bool = False):
                 for idx, aug in enumerate(augments):
                     image_a_fn = f'{frame.image_id}_{frame.video_frame}_{idx}.jpg'
                     label_a_fn = f'{frame.image_id}_{frame.video_frame}_{idx}.txt'
-                    aug.save(label_save_path / image_a_fn)
+                    aug.save(image_save_path / image_a_fn)
                     np.savetxt(label_save_path / label_a_fn, labels, fmt='%g ')
 
             # file names
